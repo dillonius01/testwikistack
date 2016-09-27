@@ -1,16 +1,26 @@
 var chai = require('chai');
 var spies = require('chai-spies');
 chai.use(spies);
+chai.should();
+chai.use(require('chai-things'));
 
 var expect = require('chai').expect
 
 var Models = require('../models/');
 var Page = Models.Page;
+var User = Models.User;
 
 
+before(function(done) {
+	User.sync({force:true})
+    	.then(function () {
+        	return Page.sync({force:true});
+	    })
+    	.then(function() {
+        	done();
+    });
+});
 
-
-console.log(Page);
 
 xdescribe('spying', function() {
 
@@ -32,13 +42,13 @@ xdescribe('spying', function() {
 
 
 
-describe('Methods on Page model', function() {
+xdescribe('Methods on Page model', function() {
 
 	describe('Hooks', function() {
 		it('has a beforeValidate func that returns url-friendly title')
 	})
 
-	describe('getterMethods', function() {
+	xdescribe('getterMethods', function() {
 		
 		var page;
 		beforeEach(function(){
@@ -54,7 +64,7 @@ describe('Methods on Page model', function() {
 		it('converts MD-formatted content to HTML');
 	})	
 
-	describe('classMethods', function() {
+	xdescribe('classMethods', function() {
 		
 		beforeEach(function(done){
 			Page.create({
@@ -91,19 +101,22 @@ describe('Methods on Page model', function() {
 
 	describe('instanceMethods', function() {
 
-		beforeEach(function(done){
-			var page1 = Page.create()
+		before(function(done){
 
-			Page.bulkCreate([
-				{title: 'Someone Like You', content: 'Crying', tags: ['Adele', 'grammys', 'breakup']},
-				{title: 'Make You Feel My Live', content: 'Dylan cover', tags: ['Adele', '19']},
-				{title: 'Chasing Pavements', content: 'FeelGood', tags: ['Adele', '19', '!asphalt']},
-				{title: 'Party in the USA', content: 'twerking', tags: ['tongue', 'millenials']}
-				])
-			.then(function(done){
-				done();
-			})
-			.catch(done);
+			var page1 = Page.create({title: 'Someone Like You', content: 'Crying', tags: ['Adele', 'grammys', 'breakup', 'uniquetag']})
+
+			var page2 = Page.create({title: 'Make You Feel My Live', content: 'Dylan cover', tags: ['Adele', '19', 'uniquetag']})
+
+			var page3 = Page.create({title: 'Chasing Pavements', content: 'FeelGood', tags: ['Adele', '19', '!asphalt', 'uniquetag']})
+			
+			var page4 = Page.create({title: 'Party in the USA', content: 'twerking', tags: ['tongue', 'millenials']})
+				
+			
+			Promise.all([page1, page2, page3, page4])
+				.then(function(){
+					done();
+				})
+				.catch(done);
 		})
 
 
@@ -118,14 +131,129 @@ describe('Methods on Page model', function() {
 					return pages[0].findSimilar();
 				})
 				.then(function(pages){
-					expect(pages).to.have.length(2);
+					// expect(pages).to.have.length(2);				 
+
+					pages.forEach(function(page) {
+						expect(page.tags.indexOf('uniquetag')).to.not.equal(-1);
+					})
 					done();
+
 				})
-				.catch(done);
+				.catch(done);		
+
+		})
+		it('findSimilar does not get itself', function(done) {
+
+			Page.findOne({
+					where: {
+						title: 'Someone Like You'
+					}
+				})
+				.then(function(page){
+					return page.findSimilar();
+				})
+				.then(function(pages){
+
+					pages.forEach(function(page) {
+						// console.log(page.dataValues)
+						expect(page.title).to.not.equal('Someone Like You');
+					})
+					done();
+
+				})
+				.catch(done);		
+
+		})
+	})
+
+	describe('Validations', function() {
+
+
+		it('errors with null title', function(done) {
+			
+			Page.create({
+				title: null,
+				content: 'Crying',
+				tags: ['grammys', 'breakups', 'top40']
+			})
+			.then(done)
+			.catch(function(err) {
+				expect(err).to.exist;
+				expect(err.errors).to.exist;
+				expect(err.errors[0].path).to.equal('title');
+				done();
+			})
+			.catch(done)
 		})
 
-		it('findSimilar does not get pages without common tags')
-		it('findSimilar does not get itself')
+
+		it('errors with null content', function(done) {
+			
+			Page.create({
+				title: 'Valid',
+				content: null,
+				tags: ['grammys', 'breakups', 'top40']
+			})
+			.then(done)
+			.catch(function(err) {
+				expect(err).to.exist;
+				expect(err.errors).to.exist;
+				expect(err.errors[0].path).to.equal('content');
+				done();
+			})
+			.catch(done)
+
+
+		})
+
+		it('errors with status set to anything except open/closed', function(done) {
+			
+			Page.create({
+				title: 'valid',
+				content: 'whoop',
+				tags: ['grammys', 'breakups', 'top40'],
+				status: 'throw_error'
+			})
+			.then(done)
+			.catch(function(err) {
+				expect(err).to.exist;
+				expect(err.message.indexOf('status')).to.not.equal(-1)
+				done();
+			})
+			.catch(done)
+
+		})
+
+
+	})
+
+	describe('Hooks', function() {
+
+		var page;
+		beforeEach(function(){
+			page = Page.build({
+				title: 'What The Fuck Man',
+				content: 'no null, silly'
+			});
+		})
+
+		it('sets a urltitle after validating', function(done) {
+			//page.validate() does NOT RUN THE HOOKS!!!
+			page.save()
+				.then(function(page){
+					console.log(page.dataValues);
+					expect(page.urlTitle).to.exist;
+					expect(page.urlTitle.length).to.be.above(5);
+					done();
+				})
+				.catch(done)
+
+
+
+
+			
+		})
+
 	})
 
 })

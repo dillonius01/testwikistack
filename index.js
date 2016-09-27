@@ -33,7 +33,7 @@ app.get('/', function (req, res) {
 
 app.use(function (err, req, res, next) {
     console.error(err);
-    res.status(500).send(err.message);
+    res.status(404).send(err.message);
 });
 
 User.sync({force:true})
@@ -45,4 +45,6 @@ User.sync({force:true})
             console.log('Server is listening on port 3001!');
         });
     });
+
+module.exports = app
 
