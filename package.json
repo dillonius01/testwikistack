@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "test": "mocha"
   },
   "keywords": [],
   "author": "S & D",
   "license": "MIT",
   "dependencies": {
+    "bluebird": "^3.4.6",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "marked": "^0.3.6",
@@ -19,6 +21,9 @@
     "swig": "^1.4.2"
   },
   "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-spies": "^0.7.1",
+    "mocha": "^3.1.0",
     "nodemon": "^1.10.0"
   },
   "repository": {

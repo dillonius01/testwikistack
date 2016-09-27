@@ -36,9 +36,9 @@ app.use(function (err, req, res, next) {
     res.status(500).send(err.message);
 });
 
-User.sync()
+User.sync({force:true})
     .then(function () {
-        return Page.sync();
+        return Page.sync({force:true});
     })
     .then(function () {
         app.listen(3001, function () {
